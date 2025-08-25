@@ -1,0 +1,246 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String     @id @default(cuid())
+  name       String
+  email      String     @unique
+  password   String
+  role       Role       @default(MENTEE)
+  phone      String?
+  avatarUrl  String?
+  schoolName String?
+  studentId  String?
+  status     UserStatus @default(ACTIVE)
+  createdAt  DateTime   @default(now())
+
+  // Relations
+  mentorProfile    MentorProfile?
+  wallet           Wallet?
+  bookingsAsMentee Booking[]           @relation("MenteeBookings")
+  bookingsAsMentor Booking[]           @relation("MentorBookings")
+  sentMessages     Message[]           @relation("SentMessages")
+  receivedMessages Message[]           @relation("ReceivedMessages")
+  reviews          Review[]
+  transactions     WalletTransaction[]
+  notifications    Notification[]
+
+  @@map("users")
+}
+
+model Subject {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  mentorSubjects MentorSubject[]
+  bookings       Booking[]
+
+  @@map("subjects")
+}
+
+model MentorProfile {
+  userId        String   @id
+  bio           String?
+  major         String?
+  yearOfStudy   Int?
+  totalSessions Int      @default(0)
+  avgRating     Float    @default(0)
+  isApproved    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects MentorSubject[]
+
+  @@map("mentor_profiles")
+}
+
+model MentorSubject {
+  mentorId              String
+  subjectId             String
+  hourlyRate            Float
+  experienceDescription String?
+
+  // Relations
+  mentor  MentorProfile @relation(fields: [mentorId], references: [userId], onDelete: Cascade)
+  subject Subject       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@id([mentorId, subjectId])
+  @@map("mentor_subjects")
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  menteeId        String
+  mentorId        String
+  subjectId       String
+  durationHours   Float
+  hourlyRate      Float
+  totalAmount     Float
+  platformFee     Float
+  mentorEarnings  Float
+  preferredTime   String?
+  actualStartTime DateTime?
+  actualEndTime   DateTime?
+  learningGoals   String?
+  sessionNotes    String?
+  status          BookingStatus @default(PENDING)
+  paymentStatus   PaymentStatus @default(PAID)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  mentee       User                @relation("MenteeBookings", fields: [menteeId], references: [id])
+  mentor       User                @relation("MentorBookings", fields: [mentorId], references: [id])
+  subject      Subject             @relation(fields: [subjectId], references: [id])
+  messages     Message[]
+  reviews      Review[]
+  transactions WalletTransaction[]
+
+  @@map("bookings")
+}
+
+model Wallet {
+  userId    String   @id
+  balance   Float    @default(0)
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[] @relation("WalletTransactions")
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id                String          @id @default(cuid())
+  userId            String
+  type              TransactionType
+  amount            Float
+  balanceAfter      Float
+  bookingId         String?
+  momoOrderId       String?
+  momoTransactionId String?
+  momoStatus        MomoStatus?
+  description       String?
+  createdAt         DateTime        @default(now())
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "wallet_transactions_user_fkey")
+  booking Booking? @relation(fields: [bookingId], references: [id])
+  wallet  Wallet   @relation("WalletTransactions", fields: [userId], references: [userId], map: "wallet_transactions_wallet_fkey")
+
+  @@map("wallet_transactions")
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  bookingId  String
+  reviewerId String
+  rating     Float
+  comment    String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  reviewer User    @relation(fields: [reviewerId], references: [id])
+
+  @@unique([bookingId, reviewerId])
+  @@map("reviews")
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  bookingId  String
+  senderId   String
+  receiverId String
+  content    String
+  isRead     Boolean  @default(false)
+  sentAt     DateTime @default(now())
+
+  // Relations
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender   User    @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User    @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@map("messages")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  title     String
+  content   String
+  type      NotificationType
+  bookingId String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  MENTOR
+  MENTEE
+  BOTH
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PAID
+  REFUNDED
+}
+
+enum TransactionType {
+  DEPOSIT
+  PAYMENT
+  EARNINGS
+  REFUND
+}
+
+enum MomoStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum NotificationType {
+  BOOKING
+  PAYMENT
+  REVIEW
+  SYSTEM
+}
