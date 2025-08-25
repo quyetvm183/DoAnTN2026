@@ -15,7 +15,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        if (!credentials?.email || !credentials?.password ) {
           return null
         }
 
@@ -40,12 +40,13 @@ export const authOptions: NextAuthOptions = {
         if (!isPasswordValid) {
           return null
         }
-
+        
         return {
           id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
+          studentId: user.studentId ?? undefined,
           avatarUrl: user.avatarUrl,
         }
       }
@@ -57,6 +58,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.studentId = user.studentId
         token.role = user.role
       }
       return token
@@ -65,6 +67,7 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.sub!
         session.user.role = token.role as any
+        session.user.studentId = token.studentId as any
       }
       return session
     }
