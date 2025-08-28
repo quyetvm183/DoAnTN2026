@@ -3,6 +3,8 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import SessionProvider from "@/components/providers/SessionProvider"
+import Navbar from "@/components/layout/Navbar"
+import Footer from "@/components/layout/Footer"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -18,9 +20,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-gradient-to-br from-indigo-50 via-white to-purple-50`}>
         <SessionProvider>
-          {children}
+          <Navbar />
+          <main className="min-h-[calc(100vh-8rem)]">
+            {children}
+          </main>
+          <Footer />
         </SessionProvider>
       </body>
     </html>
