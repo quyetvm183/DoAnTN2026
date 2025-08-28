@@ -255,20 +255,11 @@ function UpcomingSessionCard({ session }: { session: UpcomingSession }) {
                     <span className="font-medium">{session.duration}h</span>
                 </div>
             </div>
-
-            {session.meetingLink && (
-                <div className="mt-3 flex gap-2">
-                    <button
-                        onClick={() => window.open(session.meetingLink, '_blank')}
-                        className="flex-1 rounded-lg bg-indigo-600 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-                    >
-                        Tham gia Meeting
-                    </button>
-                    <button className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        Nhắn tin
-                    </button>
-                </div>
-            )}
+            <div className="mt-3 flex gap-2">
+                <button className="flex-1 rounded-lg bg-indigo-600 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                    Nhắn tin
+                </button>
+            </div>
         </div>
     )
 }
