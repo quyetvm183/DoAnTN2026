@@ -27,17 +27,78 @@ model User {
   createdAt  DateTime   @default(now())
 
   // Relations
-  mentorProfile    MentorProfile?
-  wallet           Wallet?
-  bookingsAsMentee Booking[]           @relation("MenteeBookings")
-  bookingsAsMentor Booking[]           @relation("MentorBookings")
-  sentMessages     Message[]           @relation("SentMessages")
-  receivedMessages Message[]           @relation("ReceivedMessages")
-  reviews          Review[]
-  transactions     WalletTransaction[]
-  notifications    Notification[]
+  mentorProfile       MentorProfile?
+  mentorApplication   MentorApplication?
+  wallet              Wallet?
+  preferences         UserPreferences?
+  bookingsAsMentee    Booking[]           @relation("MenteeBookings")
+  bookingsAsMentor    Booking[]           @relation("MentorBookings")
+  sentMessages        Message[]           @relation("SentMessages")
+  receivedMessages    Message[]           @relation("ReceivedMessages")
+  reviews             Review[]
+  transactions        WalletTransaction[]
+  notifications       Notification[]
 
   @@map("users")
+}
+
+model UserPreferences {
+  userId            String   @id
+  emailBookings     Boolean  @default(true)
+  emailMessages     Boolean  @default(true)
+  emailMarketing    Boolean  @default(false)
+  pushBookings      Boolean  @default(true)
+  pushMessages      Boolean  @default(true)
+  pushMarketing     Boolean  @default(false)
+  showProfile       Boolean  @default(true)
+  showEmail         Boolean  @default(false)
+  showPhone         Boolean  @default(false)
+  allowMessages     Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model MentorApplication {
+  id                   String                  @id @default(cuid())
+  userId               String                  @unique
+  bio                  String
+  major                String
+  yearOfStudy          Int
+  overallGPA           Float?
+  experience           String?
+  motivation           String?
+  status               MentorApplicationStatus @default(PENDING)
+  adminNotes           String?
+  submittedAt          DateTime                @default(now())
+  reviewedAt           DateTime?
+  reviewedBy           String?
+
+  // Relations
+  user                 User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectApplications  MentorSubjectApplication[]
+
+  @@map("mentor_applications")
+}
+
+model MentorSubjectApplication {
+  id                    String            @id @default(cuid())
+  applicationId         String
+  subjectId             String
+  gpa                   Float
+  hourlyRate            Float
+  experienceDescription String?
+
+  // Relations
+  application MentorApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  subject     Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, subjectId])
+  @@map("mentor_subject_applications")
 }
 
 model Subject {
@@ -49,8 +110,9 @@ model Subject {
   createdAt   DateTime @default(now())
 
   // Relations
-  mentorSubjects MentorSubject[]
-  bookings       Booking[]
+  mentorSubjects          MentorSubject[]
+  subjectApplications     MentorSubjectApplication[]
+  bookings                Booking[]
 
   @@map("subjects")
 }
@@ -60,9 +122,11 @@ model MentorProfile {
   bio           String?
   major         String?
   yearOfStudy   Int?
+  overallGPA    Float?
   totalSessions Int      @default(0)
   avgRating     Float    @default(0)
   isApproved    Boolean  @default(false)
+  approvedAt    DateTime?
   createdAt     DateTime @default(now())
 
   // Relations
@@ -75,8 +139,10 @@ model MentorProfile {
 model MentorSubject {
   mentorId              String
   subjectId             String
+  gpa                   Float
   hourlyRate            Float
   experienceDescription String?
+  isVerified            Boolean @default(false)
 
   // Relations
   mentor  MentorProfile @relation(fields: [mentorId], references: [userId], onDelete: Cascade)
@@ -212,6 +278,12 @@ enum UserStatus {
   INACTIVE
 }
 
+enum MentorApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum BookingStatus {
   PENDING
   ACCEPTED
@@ -243,4 +315,5 @@ enum NotificationType {
   PAYMENT
   REVIEW
   SYSTEM
+  MENTOR_APPLICATION
 }
